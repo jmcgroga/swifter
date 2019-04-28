@@ -164,6 +164,10 @@ public class HttpServerIO {
         func write(_ data: Data) throws {
             try socket.writeData(data)
         }
+
+        func write(_ data: String) throws {
+            try socket.writeUTF8(data)
+        }
     }
 
     private func respond(_ socket: Socket, response: HttpResponse, keepAlive: Bool) throws -> Bool {

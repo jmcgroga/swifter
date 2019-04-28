@@ -30,6 +30,14 @@ extension String {
             return (fseek(pointer, offset, SEEK_SET) == 0)
         }
         
+        public func size() -> Int {
+            let current = ftell(pointer)
+            fseek(pointer, 0, SEEK_END)
+            let size = ftell(pointer)
+            fseek(pointer, current, SEEK_SET)
+            return size
+        }
+        
         public func read(_ data: inout [UInt8]) throws -> Int {
             if data.count <= 0 {
                 return data.count

@@ -18,6 +18,7 @@ public protocol HttpResponseBodyWriter {
     func write(_ data: ArraySlice<UInt8>) throws
     func write(_ data: NSData) throws
     func write(_ data: Data) throws
+    func write(_ data: String) throws
 }
 
 public enum HttpResponseBody {
@@ -85,6 +86,7 @@ public enum HttpResponse {
     case movedTemporarily(String)
     case badRequest(HttpResponseBody?), unauthorized, forbidden, notFound
     case internalServerError
+    case partialContent([String:String]?, ((HttpResponseBodyWriter) throws -> Void)?)
     case raw(Int, String, [String:String]?, ((HttpResponseBodyWriter) throws -> Void)? )
 
     func statusCode() -> Int {
@@ -93,6 +95,7 @@ public enum HttpResponse {
         case .ok(_)                   : return 200
         case .created                 : return 201
         case .accepted                : return 202
+        case .partialContent(_, _)    : return 206
         case .movedPermanently        : return 301
         case .movedTemporarily        : return 307
         case .badRequest(_)           : return 400
@@ -110,6 +113,7 @@ public enum HttpResponse {
         case .ok(_)                    : return "OK"
         case .created                  : return "Created"
         case .accepted                 : return "Accepted"
+        case .partialContent(_, _)     : return "Partial Content"
         case .movedPermanently         : return "Moved Permanently"
         case .movedTemporarily         : return "Moved Temporarily"
         case .badRequest(_)            : return "Bad Request"
@@ -138,6 +142,12 @@ public enum HttpResponse {
             headers["Location"] = location
         case .movedTemporarily(let location):
             headers["Location"] = location
+        case .partialContent(let rawHeaders, _):
+            if let rawHeaders = rawHeaders {
+                for (k, v) in rawHeaders {
+                    headers.updateValue(v, forKey: k)
+                }
+            }
         case .raw(_, _, let rawHeaders, _):
             if let rawHeaders = rawHeaders {
                 for (k, v) in rawHeaders {
@@ -153,6 +163,7 @@ public enum HttpResponse {
         switch self {
         case .ok(let body)             : return body.content()
         case .badRequest(let body)     : return body?.content() ?? (-1, nil)
+        case .partialContent(_, let writer) : return (-1, writer)
         case .raw(_, _, _, let writer) : return (-1, writer)
         default                        : return (-1, nil)
         }
